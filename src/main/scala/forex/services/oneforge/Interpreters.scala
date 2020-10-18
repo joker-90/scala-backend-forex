@@ -28,13 +28,19 @@ object Interpreters {
 
 }
 
-final class HttpInterpreter[R] private[oneforge](apiKey: String, baseUrl: String)(implicit m1: monix.task._task[R],
-                                                                                  system: ActorSystem)
+final class HttpInterpreter[R] private[oneforge] (apiKey: String, baseUrl: String)(implicit m1: monix.task._task[R],
+                                                                                   system: ActorSystem)
     extends Algebra[Eff[R, *]] {
 
   private implicit val executorContext: ExecutionContextExecutor = system.dispatcher
 
-  override def get(pair: Rate.Pair): Eff[R, Either[Error, Rate]] = fromTask(Task.deferFuture(request(pair)))
+  private val cache = ConcurrentHashMapCache()
+
+  override def get(pair: Rate.Pair): Eff[R, Either[Error, Rate]] = {
+    val future = cache get pair getOrElse cache.memo(pair, request(pair))
+
+    fromTask(Task.deferFuture(future))
+  }
 
   private def request(pair: Rate.Pair): Future[Either[Error, Rate]] = {
 

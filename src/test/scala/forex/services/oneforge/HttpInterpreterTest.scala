@@ -32,13 +32,21 @@ class HttpInterpreterTest() extends AnyFunSuite with BeforeAndAfterAll {
     val appKey = "wVjjmBc9z1Zmephwk6uWqxw8alr8GfAv"
     val baseUrl = "https://api.1forge.com/quotes"
 
-    val effect = Interpreters.http[AppStack](appKey, baseUrl).get(requestedPair)
+    val interpreter = Interpreters.http[AppStack](appKey, baseUrl)
+
+    val effect = interpreter.get(requestedPair)
 
     val result = Await.result(effect.runAsync.runToFuture, 15 second)
 
     result.right.value.timestamp.value should be > OffsetDateTime.MIN
     result.right.value.pair should be(requestedPair)
     result.right.value.price.value should be > BigDecimal(0)
+
+    interpreter.get(requestedPair)
+
+    val result2 = Await.result(effect.runAsync.runToFuture, 15 second)
+
+    result should be(result2)
   }
 
 }
