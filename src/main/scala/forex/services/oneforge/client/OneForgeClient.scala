@@ -1,46 +1,29 @@
-package forex.services.oneforge
+package forex.services.oneforge.client
 
 import java.time.Instant
-import java.time.ZoneOffset.UTC
+import java.time.ZoneOffset._
 
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
-import akka.http.scaladsl.model.Uri.{ Path, Query }
-import akka.http.scaladsl.model.{ HttpRequest, Uri }
+import akka.http.scaladsl.model.Uri.{Path, Query}
+import akka.http.scaladsl.model.{HttpRequest, Uri}
 import akka.http.scaladsl.unmarshalling.Unmarshal
 import cats.data.NonEmptyList
 import cats.implicits._
 import forex.domain._
-import forex.services.oneforge.Error.{ EmptyResponse, ParsingError, System }
+import forex.services.oneforge.Error
+import forex.services.oneforge.Error.{EmptyResponse, ParsingError, System}
 import io.circe.Decoder
 import io.circe.generic.semiauto.deriveDecoder
 import monix.eval.Task
-import org.atnos.eff._
-import org.atnos.eff.addon.monix
-import org.atnos.eff.addon.monix.task._
 
-import scala.concurrent.{ ExecutionContextExecutor, Future }
+import scala.concurrent.{ExecutionContextExecutor, Future}
 
-object Interpreters {
-
-  def http[R](apiKey: String, baseUrl: String)(implicit m1: _task[R], system: ActorSystem) =
-    new HttpInterpreter[R](apiKey, baseUrl)
-
-}
-
-final class HttpInterpreter[R] private[oneforge] (apiKey: String, baseUrl: String)(implicit m1: monix.task._task[R],
-                                                                                   system: ActorSystem)
-    extends Algebra[Eff[R, *]] {
+final case class OneForgeClient private[oneforge] (apiKey: String, baseUrl: String)(implicit system: ActorSystem) {
 
   private implicit val executorContext: ExecutionContextExecutor = system.dispatcher
 
-  private val cache = ConcurrentHashMapCache()
-
-  override def get(pair: Rate.Pair): Eff[R, Either[Error, Rate]] = {
-    val future = cache get pair getOrElse cache.memo(pair, request(pair))
-
-    fromTask(Task.deferFuture(future))
-  }
+  def get(pair: Rate.Pair): Task[Either[Error, Rate]] = Task.deferFuture(request(pair))
 
   private def request(pair: Rate.Pair): Future[Either[Error, Rate]] = {
 

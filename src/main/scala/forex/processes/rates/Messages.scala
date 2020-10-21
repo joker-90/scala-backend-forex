@@ -1,6 +1,7 @@
 package forex.processes.rates
 
 import forex.domain._
+
 import scala.util.control.NoStackTrace
 
 object Messages {
@@ -13,5 +14,7 @@ object Messages {
   final case class GetRequest(
       from: Currency,
       to: Currency
-  )
+  ) {
+    def toModel: Rate.Pair = Rate.Pair(from, to)
+  }
 }

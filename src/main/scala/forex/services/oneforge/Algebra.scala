@@ -1,42 +1,69 @@
 package forex.services.oneforge
 
-import java.time.Duration
-import java.time.temporal.ChronoUnit._
+import java.time.{ Duration, Instant }
 
+import cats.data._
 import forex.domain._
-import org.atnos.eff.{ |=, Eff }
+import forex.services.oneforge.PairCacheWithDeadline.Value
+import forex.services.oneforge.client.OneForgeClient
+import monix.eval.Task
+import org.atnos.eff.addon.monix.task.{ _task, fromTask }
+import org.atnos.eff.all.{ fromEither, _ }
+import org.atnos.eff.{ |=, ConcurrentHashMapCache, Eff, Fx }
 
-trait Algebra[F[_]] {
-  def get(pair: Rate.Pair): F[Error Either Rate]
-}
+object RatesStore {
+  type _either[R] = Either[Error, *] |= R
 
-sealed trait PairStore[F]
+  type _readerEnvironment[R] = Reader[Environment, *] |= R
 
-final case class Retrieve(pair: Rate.Pair) extends PairStore[Error Either Rate]
-final case class GetFromCache(pair: Rate.Pair) extends PairStore[Option[Rate]]
-final case class Memoize(rate: Rate, maxAge: Duration) extends PairStore[Unit]
+  type AppStack = Fx.fx3[Reader[Environment, *], Either[Error, *], Task]
 
-object PairStore {
-  type _pairStore[F] = PairStore |= F
-
-  type fallibleEff[F] = Eff[F, Error Either Rate]
-
-  def memoize[F: _pairStore](rate: Rate, maxAge: Duration): Eff[F, Unit] =
-    Eff.send[PairStore, F, Unit](Memoize(rate, maxAge))
-
-  def retrieve[F: _pairStore](pair: Rate.Pair): fallibleEff[F] =
-    Eff.send[PairStore, F, Error Either Rate](Retrieve(pair))
-
-  def getFromCache[F: _pairStore](pair: Rate.Pair): Eff[F, Option[Rate]] =
-    Eff.send[PairStore, F, Option[Rate]](GetFromCache(pair))
-
-  def get[F: _pairStore](pair: Rate.Pair): Eff[F, Error Either Rate] =
+  def memoize[R: _readerEnvironment](rate: Rate, maxAge: Duration): Eff[R, Unit] =
     for {
-      cached ← getFromCache(pair)
-      result ← cached.map(p ⇒ Eff.pure[F, Either[Error, Rate]](Right(p))).getOrElse(retrieve(pair))
-      _ ← result match {
-        case Right(value) if cached.isEmpty ⇒ memoize(value, Duration.of(5, MINUTES))
-        case _                              ⇒ Eff.pure[F, Unit](())
-      }
+      environment ← ask
+    } yield environment.cache.put(rate.pair, Value(rate, environment.now().plus(maxAge)))
+
+  def retrieve[R: _readerEnvironment: _either: _task](pair: Rate.Pair): Eff[R, Rate] =
+    for {
+      env ← ask
+      task ← fromTask(env.client.get(pair))
+      result ← fromEither(task)
+    } yield result
+
+  def getFromCache[R: _readerEnvironment](pair: Rate.Pair): Eff[R, Option[Rate]] =
+    for {
+      environment ← ask
+    } yield environment.cache.get(pair).filter(_.deadline.isAfter(environment.now())).map(_.rate)
+
+  def get(pair: Rate.Pair): Eff[AppStack, Rate] =
+    for {
+      cached ← getFromCache[AppStack](pair)
+      result ← cached.map(right[AppStack, Error, Rate](_)).getOrElse(retrieve[AppStack](pair))
+      _ ← if (cached.isEmpty) memoize[AppStack](result, Duration.ofMinutes(5)) else Eff.pure[AppStack, Unit](())
     } yield result
 }
+
+trait PairCacheWithDeadline {
+  def get(pair: Rate.Pair): Option[Value]
+  def put(pair: Rate.Pair, value: Value)
+}
+
+object PairCacheWithDeadline {
+  final case class Value(rate: Rate, deadline: Instant)
+
+  def default(): PairCacheWithDeadline =
+    new PairCacheWithDeadline {
+
+      private val _map = ConcurrentHashMapCache()
+
+      override def get(pair: Rate.Pair): Option[Value] = _map.get(pair)
+
+      override def put(pair: Rate.Pair, value: Value): Unit = _map.put(pair, value)
+    }
+}
+
+final case class Environment(
+    cache: PairCacheWithDeadline,
+    client: OneForgeClient,
+    now: () ⇒ Instant
+)

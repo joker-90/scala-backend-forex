@@ -1,4 +1,4 @@
-package forex.services.oneforge
+package forex.services.oneforge.client
 
 import java.time.OffsetDateTime
 
@@ -6,13 +6,11 @@ import akka.actor.ActorSystem
 import akka.testkit.TestKit
 import forex.domain.Currency._
 import forex.domain.Rate
-import forex.main.AppStack
 import monix.execution.Scheduler
-import org.atnos.eff.syntax.addon.monix.task.toTaskOps
-import org.scalatest._
+import org.scalatest.BeforeAndAfterAll
+import org.scalatest.EitherValues._
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.must.Matchers.be
-import EitherValues._
 import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
 
 import scala.concurrent.Await
@@ -32,21 +30,17 @@ class HttpInterpreterTest() extends AnyFunSuite with BeforeAndAfterAll {
     val appKey = "wVjjmBc9z1Zmephwk6uWqxw8alr8GfAv"
     val baseUrl = "https://api.1forge.com/quotes"
 
-    val interpreter = Interpreters.http[AppStack](appKey, baseUrl)
+    val client = OneForgeClient(appKey, baseUrl)
 
-    val effect = interpreter.get(requestedPair)
+    val effect = client.get(requestedPair)
 
-    val result = Await.result(effect.runAsync.runToFuture, 15 second)
+    val result = Await.result(effect.runToFuture, 15 second)
 
     result.right.value.timestamp.value should be > OffsetDateTime.MIN
     result.right.value.pair should be(requestedPair)
     result.right.value.price.value should be > BigDecimal(0)
 
-    interpreter.get(requestedPair)
-
-    val result2 = Await.result(effect.runAsync.runToFuture, 15 second)
-
-    result should be(result2)
+    client.get(requestedPair)
   }
 
 }

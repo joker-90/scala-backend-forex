@@ -1,15 +1,11 @@
 package forex
 
-import monix.eval.Task
-import monix.execution.Scheduler
+import forex.services.oneforge.RatesStore.AppStack
 import org.atnos.eff._
 import org.zalando.grafter._
 
-import scala.concurrent.ExecutionContext
-
 package object main {
 
-  type AppStack = Fx.fx1[Task]
   type AppEffect[R] = Eff[AppStack, R]
 
   def toStartErrorString(results: List[StartResult]): String =
