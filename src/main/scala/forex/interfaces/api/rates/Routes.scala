@@ -8,15 +8,15 @@ import org.zalando.grafter.macros._
 
 @readerOf[ApplicationConfig]
 case class Routes(
-    processes: EnvironmentReader,
+    services: Services,
     runners: Runners
 ) {
   import ApiMarshallers._
   import Converters._
   import Directives._
-  import processes._
   import runners._
   import server.Directives._
+  import services._
 
   lazy val route: server.Route =
     get {

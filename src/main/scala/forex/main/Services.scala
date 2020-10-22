@@ -9,17 +9,10 @@ import forex.services.oneforge.{ Environment, PairCacheWithDeadline }
 import org.zalando.grafter.macros._
 
 @readerOf[ApplicationConfig]
-case class EnvironmentReader(
-    config: OneForgeConfig,
-    actorSystems: ActorSystems
-) {
-  import actorSystems._
+case class Services(
 
-  implicit final lazy val environment: Environment = Environment(
-    PairCacheWithDeadline.default(),
-    OneForgeClient.http(config.apiKey, config.baseUrl),
-    Instant.now
-  )
+) {
+
 
   final val Rates = Service()
 
