@@ -3,10 +3,12 @@ package forex.interfaces.api.rates
 import akka.http.scaladsl._
 import forex.domain._
 
+import scala.concurrent.Future
+
 trait Directives {
+  import Protocol._
   import server.Directives._
   import unmarshalling.Unmarshaller
-  import Protocol._
 
   def getApiRequest: server.Directive1[GetApiRequest] =
     for {
@@ -14,8 +16,14 @@ trait Directives {
       to ← parameter('to.as(currency))
     } yield GetApiRequest(from, to)
 
-  private val currency =
-    Unmarshaller.strict[String, Currency](Currency.fromString)
+  private val currency: Unmarshaller[String, Currency] =
+    Unmarshaller.apply[String, Currency](
+      _ ⇒
+        s ⇒
+          Currency
+            .fromString(s)
+            .fold(Future.failed[Currency](new IllegalArgumentException("Currency not found!")))(c => Future.successful(c))
+    )
 
 }
 

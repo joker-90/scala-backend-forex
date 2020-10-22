@@ -7,9 +7,7 @@ import monix.eval.Task
 import org.zalando.grafter.macros._
 
 @readerOf[ApplicationConfig]
-case class Runners(
-    processes: EnvironmentReader
-) {
+case class Runners(processes: EnvironmentReader) {
 
   def runApp[R](
       app: AppEffect[R]

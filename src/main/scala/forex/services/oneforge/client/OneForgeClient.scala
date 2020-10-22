@@ -67,10 +67,14 @@ final case class HttpOneForgeClient private[oneforge] (apiKey: String, baseUrl: 
         currencies ← NonEmptyList
           .fromList(rawPair.split("/").toList)
           .filter(_.size >= 2)
-          .toRight(ParsingError(new Exception(s"malformed pair $rawPair")))
-        first ← Either.catchNonFatal(Currency.fromString(currencies.head)).leftMap(ParsingError)
-        second ← Either.catchNonFatal(Currency.fromString(currencies.tail.head)).leftMap(ParsingError)
+          .toRight(ParsingError(s"malformed pair $rawPair"))
+        first ← parseCurrency(currencies.head)
+        second ← parseCurrency(currencies.tail.head)
       } yield Rate.Pair(first, second)
+
+    private def parseCurrency(raw: String): Either[ParsingError, Currency] = Currency
+        .fromString(raw)
+        .toRight(ParsingError(s"unknown currency ${raw}"))
 
     private def parseTimestamp(rawTimestamp: Long): Timestamp = {
       val instant = Instant.ofEpochMilli(rawTimestamp)
