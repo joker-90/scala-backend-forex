@@ -16,7 +16,7 @@ import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
 import scala.concurrent.Await
 import scala.concurrent.duration.DurationInt
 
-class HttpInterpreterTest() extends AnyFunSuite with BeforeAndAfterAll {
+class OneForgeClientTest() extends AnyFunSuite with BeforeAndAfterAll {
 
   private implicit val system: ActorSystem = ActorSystem("test_actor_system")
 

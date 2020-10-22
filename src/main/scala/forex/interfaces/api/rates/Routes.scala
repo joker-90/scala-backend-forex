@@ -8,8 +8,8 @@ import org.zalando.grafter.macros._
 
 @readerOf[ApplicationConfig]
 case class Routes(
-    processes: Processes,
-    runners: Runners
+                   processes: EnvironmentReader,
+                   runners: Runners
 ) {
   import server.Directives._
   import Directives._
@@ -27,7 +27,7 @@ case class Routes(
           runApp(
             Rates
               .get(toGetRequest(req))
-              .map(_.map(result ⇒ toGetApiResponse(result)))
+              .map(result ⇒ toGetApiResponse(result))
           )
         }
       }

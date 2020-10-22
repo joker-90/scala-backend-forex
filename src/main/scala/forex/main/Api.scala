@@ -1,6 +1,6 @@
 package forex.main
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 import akka.http.scaladsl._
 import cats.Eval
 import org.zalando.grafter._
@@ -18,7 +18,7 @@ case class Api(
     with Stop {
   import actorSystems._
 
-  implicit private val ec =
+  implicit private val ec: ExecutionContext =
     executors.default
 
   private lazy val bindingFuture: Future[Http.ServerBinding] =

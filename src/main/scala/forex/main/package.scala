@@ -1,6 +1,9 @@
 package forex
 
+import cats.data.Reader
+import forex.services.oneforge.Environment
 import forex.services.oneforge.RatesStore.AppStack
+import monix.eval.Task
 import org.atnos.eff._
 import org.zalando.grafter._
 
