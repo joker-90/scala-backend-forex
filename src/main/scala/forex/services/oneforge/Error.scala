@@ -9,4 +9,6 @@ object Error {
   final case object EmptyResponse extends Error("Unexpected empty response from upstream service arrived!")
   final case class ParsingError(message: String)
       extends Error(s"Something went wrong while parsing upstream response: ${message}")
+
+  type OneForgeClientError = Error
 }
