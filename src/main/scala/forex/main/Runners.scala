@@ -2,7 +2,7 @@ package forex.main
 
 import forex.config._
 import forex.processes.rates.converters.toProcessError
-import forex.services.oneforge.PairStoreInterpreter
+import forex.services.oneforge.AppStackRunner
 import monix.eval.Task
 import org.zalando.grafter.macros._
 
@@ -14,7 +14,7 @@ case class Runners(
   def runApp[R](
       app: AppEffect[R]
   ): Task[R] =
-    PairStoreInterpreter
+    AppStackRunner
       .run(app)(processes.environment)
       .flatMap(e ⇒ Task.fromEither(toProcessError _)(e))
 

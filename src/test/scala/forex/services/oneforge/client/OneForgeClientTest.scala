@@ -25,12 +25,12 @@ class OneForgeClientTest() extends AnyFunSuite with BeforeAndAfterAll {
   override def afterAll(): Unit =
     TestKit.shutdownActorSystem(system)
 
-  test("made a call should return right pair") {
+  test("made a call should return right pair rate") {
     val requestedPair = Rate.Pair(USD, EUR)
     val appKey = "wVjjmBc9z1Zmephwk6uWqxw8alr8GfAv"
     val baseUrl = "https://api.1forge.com/quotes"
 
-    val client = OneForgeClient(appKey, baseUrl)
+    val client = OneForgeClient.http(appKey, baseUrl)
 
     val effect = client.get(requestedPair)
 

@@ -5,21 +5,30 @@ import java.time.ZoneOffset._
 
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
-import akka.http.scaladsl.model.Uri.{Path, Query}
-import akka.http.scaladsl.model.{HttpRequest, Uri}
+import akka.http.scaladsl.model.Uri.{ Path, Query }
+import akka.http.scaladsl.model.{ HttpRequest, Uri }
 import akka.http.scaladsl.unmarshalling.Unmarshal
 import cats.data.NonEmptyList
 import cats.implicits._
 import forex.domain._
 import forex.services.oneforge.Error
-import forex.services.oneforge.Error.{EmptyResponse, ParsingError, System}
+import forex.services.oneforge.Error.{ EmptyResponse, ParsingError, System }
 import io.circe.Decoder
 import io.circe.generic.semiauto.deriveDecoder
 import monix.eval.Task
 
-import scala.concurrent.{ExecutionContextExecutor, Future}
+import scala.concurrent.{ ExecutionContextExecutor, Future }
 
-final case class OneForgeClient private[oneforge] (apiKey: String, baseUrl: String)(implicit system: ActorSystem) {
+trait OneForgeClient {
+  def get(pair: Rate.Pair): Task[Either[Error, Rate]]
+}
+object OneForgeClient {
+  def http(apiKey: String, baseUrl: String)(implicit system: ActorSystem): OneForgeClient =
+    HttpOneForgeClient(apiKey, baseUrl)
+}
+
+final case class HttpOneForgeClient private[oneforge] (apiKey: String, baseUrl: String)(implicit system: ActorSystem)
+    extends OneForgeClient {
 
   private implicit val executorContext: ExecutionContextExecutor = system.dispatcher
 

@@ -17,7 +17,7 @@ case class EnvironmentReader(
 
   implicit final lazy val environment: Environment = Environment(
     PairCacheWithDeadline.default(),
-    OneForgeClient(config.apiKey, config.baseUrl),
+    OneForgeClient.http(config.apiKey, config.baseUrl),
     Instant.now
   )
 
